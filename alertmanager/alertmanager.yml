@@ -90,9 +90,9 @@ receivers:
         send_resolved: true
         icon_emoji: ':fire:'
         username: 'Alertmanager'
-        title: '{{ template "burnguard.title" . }}'
-        text: '{{ template "burnguard.text" . }}'
-        color: '{{ template "burnguard.color" . }}'
+        title: '{{ template "observacore.title" . }}'
+        text: '{{ template "observacore.text" . }}'
+        color: '{{ template "observacore.color" . }}'
         actions:
           - type: button
             text: 'View Dashboard'

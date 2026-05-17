@@ -1,4 +1,4 @@
-# BurnGuard — Production-Grade Observability Platform
+# ObservaCore — Production-Grade Observability Platform
 
 > LGTP Stack · SLOs · DORA Metrics · Burn Rate Alerting · Incident Management
 
@@ -8,7 +8,7 @@ Built by **Pabby** and **Trojan** as part of the DevOps Track — Stage 6.
 
 ## What This Is
 
-BurnGuard is a self-hosted observability platform built on the **LGTP stack** (Loki, Grafana, Tempo, Prometheus). It goes beyond simple up/down monitoring into user-centric reliability engineering using SLIs, SLOs, error budgets, and burn rate alerting.
+ObservaCore is a self-hosted observability platform built on the **LGTP stack** (Loki, Grafana, Tempo, Prometheus). It goes beyond simple up/down monitoring into user-centric reliability engineering using SLIs, SLOs, error budgets, and burn rate alerting.
 
 The platform gives any engineering team:
 

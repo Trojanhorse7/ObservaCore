@@ -1,7 +1,7 @@
 apiVersion: 1
 
 providers:
-  - name: BurnGuard
+  - name: ObservaCore
     orgId: 1
     type: file
     disableDeletion: false      # Allow Terraform to update dashboard files

@@ -1,0 +1,102 @@
+global:
+  resolve_timeout: 5m
+  slack_api_url: '<YOUR_SLACK_WEBHOOK_URL>'
+
+# Load custom notification templates
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# ROUTE TREE
+# All alerts flow through this tree. Matched routes short-circuit (continue: false by default).
+route:
+  # Group alerts by service and severity to reduce noise.
+  # Alerts with the same group_by labels are batched into a single notification.
+  group_by: ['alertname', 'severity', 'team']
+  group_wait: 30s        # Wait 30s before sending the first notification (lets related alerts batch)
+  group_interval: 5m     # Minimum time between notifications for the same group
+  repeat_interval: 4h    # Re-notify if an alert is still firing after this duration
+  receiver: 'slack-devops-alerts'
+
+  routes:
+    # Critical alerts: shorter repeat so they are not missed
+    - matchers:
+        - severity = "critical"
+      receiver: 'slack-devops-alerts'
+      repeat_interval: 1h
+      continue: false
+
+    # Warning alerts: standard repeat
+    - matchers:
+        - severity = "warning"
+      receiver: 'slack-devops-alerts'
+      repeat_interval: 4h
+      continue: false
+
+    # Info / recovery alerts: low noise, longer repeat
+    - matchers:
+        - severity = "info"
+      receiver: 'slack-devops-alerts'
+      repeat_interval: 12h
+      continue: false
+
+# INHIBITION RULES
+# Suppress lower-signal alerts when a higher-severity alert is already firing
+# for the same instance. This prevents alert storms when a host is fully down.
+
+inhibit_rules:
+  # When HostDown fires for an instance, suppress ALL other alerts for that instance.
+  # There is no value in receiving CPU/memory/disk/SLO alerts for a host that is
+  # completely unreachable — fix the host first.
+  - source_matchers:
+      - alertname = "HostDown"
+    target_matchers:
+      - alertname =~ "CPU.*|Memory.*|Disk.*|SLO.*|Availability.*|Latency.*"
+    equal: ['instance']
+
+  # When CPUCritical fires, suppress CPUWarning for the same instance.
+  - source_matchers:
+      - alertname = "CPUCritical"
+    target_matchers:
+      - alertname = "CPUWarning"
+    equal: ['instance']
+
+  # When MemoryCritical fires, suppress MemoryWarning for the same instance.
+  - source_matchers:
+      - alertname = "MemoryCritical"
+    target_matchers:
+      - alertname = "MemoryWarning"
+    equal: ['instance']
+
+  # When DiskCritical fires, suppress DiskWarning for the same instance.
+  - source_matchers:
+      - alertname = "DiskCritical"
+    target_matchers:
+      - alertname = "DiskWarning"
+    equal: ['instance']
+
+  # When SLOFastBurn fires, suppress SLOSlowBurn (fast burn subsumes slow burn).
+  - source_matchers:
+      - alertname =~ "SLOFastBurn|AvailabilityFastBurn|LatencyFastBurn"
+    target_matchers:
+      - alertname =~ "SLOSlowBurn|AvailabilitySlowBurn|LatencySlowBurn"
+    equal: ['slo']
+
+# RECEIVERS
+
+receivers:
+  - name: 'slack-devops-alerts'
+    slack_configs:
+      - channel: '#DevOps-Alerts'
+        send_resolved: true
+        icon_emoji: ':fire:'
+        username: 'Alertmanager'
+        title: '{{ template "burnguard.title" . }}'
+        text: '{{ template "burnguard.text" . }}'
+        color: '{{ template "burnguard.color" . }}'
+        actions:
+          - type: button
+            text: 'View Dashboard'
+            url: '{{ (index .Alerts 0).Annotations.dashboard_url | default "http://localhost:3000" }}'
+          - type: button
+            text: 'View Runbook'
+            url: '{{ (index .Alerts 0).Annotations.runbook_url | default "https://github.com/yourorg/observability-platform" }}'

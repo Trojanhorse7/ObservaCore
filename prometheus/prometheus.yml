@@ -25,6 +25,11 @@ scrape_configs:
       - targets: ["localhost:8080"]
     metrics_path: /metrics
 
+  - job_name: "pushgateway"
+    honor_labels: true
+    static_configs:
+      - targets: ["localhost:9091"]
+
   - job_name: "blackbox-http"
     metrics_path: /probe
     params:

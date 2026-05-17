@@ -13,7 +13,7 @@ processors:
 
 exporters:
   otlp/tempo:
-    endpoint: localhost:4320
+    endpoint: localhost:4317
     tls:
       insecure: true
 

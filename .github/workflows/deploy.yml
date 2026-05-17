@@ -1,0 +1,130 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if tests fail'
+        required: false
+        default: 'false'
+
+jobs:
+  deploy:
+    name: Build, Test & Deploy
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      # Checkout
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Capture timestamps for DORA metrics
+      - name: Capture commit and trigger timestamps
+        id: timestamps
+        run: |
+          echo "commit_ts=$(git log -1 --format=%ct)" >> "$GITHUB_OUTPUT"
+          echo "trigger_ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      # Build
+      - name: Build application
+        id: build
+        run: |
+          echo "Running build..."
+          # Replace with your actual build command, e.g.:
+          # npm ci && npm run build
+          echo "build_end_ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      # Test
+      - name: Run tests
+        id: test
+        run: |
+          echo "Running tests..."
+          # Replace with your actual test command, e.g.:
+          # npm test -- --ci
+          echo "test_end_ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      # Deploy
+      - name: Deploy to production
+        id: deploy
+        run: |
+          echo "Deploying..."
+          # Replace with your actual deploy command, e.g.:
+          # rsync -avz ./dist/ user@${{ secrets.PROD_HOST }}:/var/www/app/
+          echo "deploy_ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+          echo "deploy_result=success" >> "$GITHUB_OUTPUT"
+
+      # Push DORA metrics to Pushgateway
+      # This step always runs (success or failure) so DORA data is never lost.
+      - name: Push DORA metrics to Prometheus Pushgateway
+        if: always()
+        env:
+          PUSHGATEWAY_URL: ${{ secrets.PUSHGATEWAY_URL }}
+          COMMIT_TS:    ${{ steps.timestamps.outputs.commit_ts }}
+          TRIGGER_TS:   ${{ steps.timestamps.outputs.trigger_ts }}
+          BUILD_END_TS: ${{ steps.build.outputs.build_end_ts }}
+          TEST_END_TS:  ${{ steps.test.outputs.test_end_ts }}
+          DEPLOY_TS:    ${{ steps.deploy.outputs.deploy_ts }}
+          COMMIT_SHA:   ${{ steps.timestamps.outputs.commit_sha }}
+          WORKFLOW:     ${{ github.workflow }}
+          RUN_ID:       ${{ github.run_id }}
+          BRANCH:       ${{ github.ref_name }}
+          ACTOR:        ${{ github.actor }}
+        run: |
+          set -euo pipefail
+
+          NOW=$(date +%s)
+
+          # Determine result from job status
+          if [ "${{ job.status }}" = "success" ]; then
+            RESULT="success"
+          elif [ "${{ steps.deploy.outcome }}" = "failure" ]; then
+            RESULT="failure"
+          else
+            RESULT="rollback"
+          fi
+
+          # Calculate DORA sub-intervals (in seconds)
+          LEAD_TIME=$(( ${DEPLOY_TS:-$NOW} - ${COMMIT_TS:-$NOW} ))
+          PIPELINE_DURATION=$(( ${DEPLOY_TS:-$NOW} - ${TRIGGER_TS:-$NOW} ))
+          BUILD_DURATION=$(( ${BUILD_END_TS:-$NOW} - ${TRIGGER_TS:-$NOW} ))
+          TEST_DURATION=$(( ${TEST_END_TS:-$NOW} - ${BUILD_END_TS:-$NOW} ))
+
+          # Push all metrics in a single request
+          cat <<EOF | curl --silent --max-time 10 --data-binary @- \
+            "${PUSHGATEWAY_URL}/metrics/job/github_actions/instance/${RUN_ID}"
+          # HELP github_actions_deployments_total Total deployment count by result
+          # TYPE github_actions_deployments_total counter
+          github_actions_deployments_total{environment="production",result="${RESULT}",workflow="${WORKFLOW}",branch="${BRANCH}",actor="${ACTOR}"} 1
+
+          # HELP github_actions_lead_time_seconds Commit to production deployment duration
+          # TYPE github_actions_lead_time_seconds gauge
+          github_actions_lead_time_seconds{workflow="${WORKFLOW}",commit="${COMMIT_SHA}"} ${LEAD_TIME}
+
+          # HELP github_actions_pipeline_duration_seconds Full pipeline execution time
+          # TYPE github_actions_pipeline_duration_seconds gauge
+          github_actions_pipeline_duration_seconds{workflow="${WORKFLOW}"} ${PIPELINE_DURATION}
+
+          # HELP github_actions_build_duration_seconds Build step duration
+          # TYPE github_actions_build_duration_seconds gauge
+          github_actions_build_duration_seconds{workflow="${WORKFLOW}"} ${BUILD_DURATION}
+
+          # HELP github_actions_test_duration_seconds Test step duration
+          # TYPE github_actions_test_duration_seconds gauge
+          github_actions_test_duration_seconds{workflow="${WORKFLOW}"} ${TEST_DURATION}
+          EOF
+
+          echo "DORA metrics pushed: result=${RESULT}, lead_time=${LEAD_TIME}s, pipeline=${PIPELINE_DURATION}s"
+
+      # Notify on failure
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          echo "Deployment failed. CFR alert will fire in Prometheus within 10 minutes."
+          echo "Check #DevOps-Alerts in Slack for the structured alert payload."
+          echo "Dashboard: ${{ secrets.GRAFANA_URL }}/d/dora-metrics"

@@ -1,0 +1,53 @@
+{{ define "burnguard.title" -}}
+{{ if eq .Status "firing" -}}
+  {{ if eq .CommonLabels.severity "critical" }}🔴{{ else if eq .CommonLabels.severity "warning" }}🟡{{ else }}🔵{{ end }}
+{{- else -}}
+  ✅
+{{- end }}
+[{{ .Status | toUpper }}{{ if eq .Status "firing" }} · {{ .Alerts.Firing | len }} alert{{ if gt (len .Alerts.Firing) 1 }}s{{ end }}{{ end }}]
+{{ .CommonLabels.alertname }}
+{{- end }}
+
+
+{{ define "burnguard.color" -}}
+{{ if eq .Status "resolved" -}}
+  good
+{{- else if eq .CommonLabels.severity "critical" -}}
+  danger
+{{- else if eq .CommonLabels.severity "warning" -}}
+  warning
+{{- else -}}
+  #439FE0
+{{- end }}
+{{- end }}
+
+
+{{ define "burnguard.text" -}}
+{{ range .Alerts }}
+---
+*Alert:*    `{{ .Labels.alertname }}`
+*Severity:* `{{ .Labels.severity | toUpper }}`
+*Host:*     `{{ .Labels.instance | default "N/A" }}`
+*SLO:*      `{{ .Labels.slo | default "N/A" }}`
+*Status:*   {{ if eq .Status "firing" }}🔥 FIRING{{ else }}✅ RESOLVED{{ end }}
+
+*Summary:*
+> {{ .Annotations.summary }}
+
+{{ if .Annotations.description -}}
+*Details:*
+> {{ .Annotations.description }}
+{{ end -}}
+
+*Timing:*
+• Fired at: `{{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}`
+{{ if eq .Status "resolved" -}}
+• Resolved at: `{{ .EndsAt.Format "2006-01-02 15:04:05 UTC" }}`
+• Duration: `{{ .EndsAt.Sub .StartsAt }}`
+{{ end -}}
+
+*Links:*
+{{ if .Annotations.dashboard_url }}• <{{ .Annotations.dashboard_url }}|📊 Grafana Dashboard>{{ end }}
+{{ if .Annotations.runbook_url }}• <{{ .Annotations.runbook_url }}|📖 Runbook>{{ end }}
+{{ end -}}
+{{- end }}

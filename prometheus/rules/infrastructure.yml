@@ -1,0 +1,181 @@
+groups:
+  - name: infrastructure
+    interval: 15s
+    rules:
+
+      # CPU
+
+      - alert: CPUWarning
+        expr: |
+          (
+            100 - (
+              avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100
+            )
+          ) > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value | printf \"%.1f\" }}% — threshold 80%."
+          dashboard_url: "http://localhost:3000/d/node-exporter"
+          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/cpu-warning.md"
+
+      - alert: CPUCritical
+        expr: |
+          (
+            100 - (
+              avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100
+            )
+          ) > 90
+        for: 10m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Critical CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value | printf \"%.1f\" }}% — threshold 90%. Escalate if not resolved in 15 minutes."
+          dashboard_url: "http://localhost:3000/d/node-exporter"
+          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/cpu-critical.md"
+
+      - alert: CPURecovered
+        expr: |
+          (
+            100 - (
+              avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100
+            )
+          ) < 75
+        for: 5m
+        labels:
+          severity: info
+          team: devops
+        annotations:
+          summary: "CPU usage normalised on {{ $labels.instance }}"
+          description: "CPU usage is back to {{ $value | printf \"%.1f\" }}%."
+
+      # MEMORY
+
+      - alert: MemoryWarning
+        expr: |
+          (
+            node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
+          ) / node_memory_MemTotal_bytes * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | printf \"%.1f\" }}% — threshold 80%."
+          dashboard_url: "http://localhost:3000/d/node-exporter"
+          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/memory-warning.md"
+
+      - alert: MemoryCritical
+        expr: |
+          (
+            node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
+          ) / node_memory_MemTotal_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Critical memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | printf \"%.1f\" }}% — OOM risk. Consider restarting the largest consumer."
+          dashboard_url: "http://localhost:3000/d/node-exporter"
+          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/memory-critical.md"
+
+      - alert: MemoryRecovered
+        expr: |
+          (
+            node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
+          ) / node_memory_MemTotal_bytes * 100 < 75
+        for: 5m
+        labels:
+          severity: info
+          team: devops
+        annotations:
+          summary: "Memory usage normalised on {{ $labels.instance }}"
+          description: "Memory usage is back to {{ $value | printf \"%.1f\" }}%."
+
+      # DISK
+
+      - alert: DiskWarning
+        expr: |
+          (
+            node_filesystem_size_bytes{mountpoint="/", fstype!~"tmpfs|overlay"}
+            - node_filesystem_free_bytes{mountpoint="/", fstype!~"tmpfs|overlay"}
+          ) / node_filesystem_size_bytes{mountpoint="/", fstype!~"tmpfs|overlay"} * 100 > 75
+        for: 5m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "Disk usage warning on {{ $labels.instance }}"
+          description: "Disk on {{ $labels.mountpoint }} is {{ $value | printf \"%.1f\" }}% full — threshold 75%."
+          dashboard_url: "http://localhost:3000/d/node-exporter"
+          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/disk-warning.md"
+
+      - alert: DiskCritical
+        expr: |
+          (
+            node_filesystem_size_bytes{mountpoint="/", fstype!~"tmpfs|overlay"}
+            - node_filesystem_free_bytes{mountpoint="/", fstype!~"tmpfs|overlay"}
+          ) / node_filesystem_size_bytes{mountpoint="/", fstype!~"tmpfs|overlay"} * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Disk critically full on {{ $labels.instance }}"
+          description: "Disk on {{ $labels.mountpoint }} is {{ $value | printf \"%.1f\" }}% full — threshold 90%. Write failures imminent."
+          dashboard_url: "http://localhost:3000/d/node-exporter"
+          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/disk-critical.md"
+
+      # HOST DOWN
+
+      - alert: HostDown
+        expr: probe_success{job="blackbox-http"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "Host {{ $labels.instance }} is unreachable"
+          description: "Blackbox probe has failed for 2+ consecutive minutes. The host may be down or the network route is broken."
+          dashboard_url: "http://localhost:3000/d/blackbox-exporter"
+          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/host-down.md"
+
+      - alert: HostRecovered
+        expr: probe_success{job="blackbox-http"} == 1
+        for: 2m
+        labels:
+          severity: info
+          team: devops
+        annotations:
+          summary: "Host {{ $labels.instance }} is back online"
+          description: "Blackbox probe is succeeding again."
+
+      # SSL EXPIRY
+
+      - alert: SSLCertExpiryWarning
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "SSL certificate expiring soon for {{ $labels.instance }}"
+          description: "Certificate expires in {{ $value | printf \"%.0f\" }} days."
+          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/host-down.md"
+
+      - alert: SSLCertExpiryCritical
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 7
+        for: 1h
+        labels:
+          severity: critical
+          team: devops
+        annotations:
+          summary: "SSL certificate expiring in {{ $value | printf \"%.0f\" }} days for {{ $labels.instance }}"
+          description: "Immediate renewal required — service will become unavailable when certificate expires."

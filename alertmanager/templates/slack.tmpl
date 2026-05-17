@@ -1,4 +1,4 @@
-{{ define "burnguard.title" -}}
+{{ define "observacore.title" -}}
 {{ if eq .Status "firing" -}}
   {{ if eq .CommonLabels.severity "critical" }}🔴{{ else if eq .CommonLabels.severity "warning" }}🟡{{ else }}🔵{{ end }}
 {{- else -}}
@@ -9,7 +9,7 @@
 {{- end }}
 
 
-{{ define "burnguard.color" -}}
+{{ define "observacore.color" -}}
 {{ if eq .Status "resolved" -}}
   good
 {{- else if eq .CommonLabels.severity "critical" -}}
@@ -22,7 +22,7 @@
 {{- end }}
 
 
-{{ define "burnguard.text" -}}
+{{ define "observacore.text" -}}
 {{ range .Alerts }}
 ---
 *Alert:*    `{{ .Labels.alertname }}`

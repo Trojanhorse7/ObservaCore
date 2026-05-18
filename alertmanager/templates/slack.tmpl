@@ -27,8 +27,8 @@
 ---
 *Alert:*    `{{ .Labels.alertname }}`
 *Severity:* `{{ .Labels.severity | toUpper }}`
-*Host:*     `{{ .Labels.instance | default "N/A" }}`
-*SLO:*      `{{ .Labels.slo | default "N/A" }}`
+*Host:*     `{{ with .Labels.instance }}{{ . }}{{ else }}N/A{{ end }}`
+*SLO:*      `{{ with .Labels.slo }}{{ . }}{{ else }}N/A{{ end }}`
 *Status:*   {{ if eq .Status "firing" }}🔥 FIRING{{ else }}✅ RESOLVED{{ end }}
 
 *Summary:*

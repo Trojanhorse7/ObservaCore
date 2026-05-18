@@ -56,7 +56,8 @@ download() {
 
 # ── Skip already-installed binaries ──────────────────────────────────────────
 install_binary() {
-    local name=$1 path="/usr/local/bin/$name"
+    local name="$1"
+    local path="/usr/local/bin/${name}"
     if [ -x "$path" ]; then
         log "$name already installed, skipping download"
         return 0

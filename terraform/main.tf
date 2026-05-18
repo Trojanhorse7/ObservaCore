@@ -14,6 +14,10 @@ resource "null_resource" "install_observability_stack" {
   }
 
   provisioner "local-exec" {
-    command = "sudo bash /home/ubuntu/ObservaCore/scripts/install.sh 2>&1 | tee /var/log/observability-install.log"
+    command = "sudo -E bash /home/ubuntu/ObservaCore/scripts/install.sh 2>&1 | tee /var/log/observability-install.log"
+    environment = {
+      GRAFANA_ADMIN_PASSWORD = var.grafana_admin_password
+      SLACK_WEBHOOK_URL      = var.slack_webhook_url
+    }
   }
 }

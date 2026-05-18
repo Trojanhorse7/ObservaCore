@@ -53,8 +53,7 @@ groups:
         annotations:
           summary: "CPU usage normalised on {{ $labels.instance }}"
           description: "CPU usage is back to {{ $value | printf \"%.1f\" }}%."
-
-      # MEMORY
+          dashboard_url: "http://localhost:3000/d/node-exporter"
 
       - alert: MemoryWarning
         expr: |
@@ -98,6 +97,7 @@ groups:
         annotations:
           summary: "Memory usage normalised on {{ $labels.instance }}"
           description: "Memory usage is back to {{ $value | printf \"%.1f\" }}%."
+          dashboard_url: "http://localhost:3000/d/node-exporter"
 
       # DISK
 
@@ -156,6 +156,7 @@ groups:
         annotations:
           summary: "Host {{ $labels.instance }} is back online"
           description: "Blackbox probe is succeeding again."
+          dashboard_url: "http://localhost:3000/d/blackbox-exporter"
 
       # SSL EXPIRY
 

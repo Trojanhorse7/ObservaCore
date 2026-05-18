@@ -364,11 +364,25 @@ if ! command -v python3 &>/dev/null; then
 fi
 
 log "Installing demo app dependencies..."
+
+# python3-setuptools provides pkg_resources at the system level.
+# On Ubuntu 24.04 (Python 3.12), venvs do not bundle setuptools, so
+# opentelemetry-instrumentation 0.45b0 crashes on import without it.
+# Installing via apt and using --system-site-packages is more reliable
+# than pip install setuptools inside a venv on Noble.
+DEBIAN_FRONTEND=noninteractive apt-get install -y python3-setuptools python3-pkg-resources
+
 mkdir -p /opt/demo-app
 cp "$REPO_DIR/demo-app/main.py"          /opt/demo-app/
 cp "$REPO_DIR/demo-app/requirements.txt" /opt/demo-app/
-python3 -m venv /opt/demo-app/venv
-/opt/demo-app/venv/bin/pip install --quiet -r /opt/demo-app/requirements.txt
+
+# Recreate the venv cleanly with system-site-packages so setuptools
+# (and therefore pkg_resources) is visible inside the venv
+rm -rf /opt/demo-app/venv
+python3 -m venv --system-site-packages /opt/demo-app/venv
+
+/opt/demo-app/venv/bin/python -m pip install --quiet --upgrade pip
+/opt/demo-app/venv/bin/python -m pip install --quiet -r /opt/demo-app/requirements.txt
 
 id demo-app &>/dev/null || useradd --no-create-home --shell /bin/false demo-app
 chown -R demo-app:demo-app /opt/demo-app

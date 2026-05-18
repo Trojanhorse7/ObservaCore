@@ -40,17 +40,22 @@ datasources:
     access: proxy
     editable: false
     jsonData:
-      tracesToLogs:
+      tracesToLogsV2:
         datasourceUid: loki
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        filterByTraceID: true
+        filterBySpanID: false
+        customQuery: false
         tags:
           - key: service.name
             value: service_name
           - key: instance
-        filterByTraceID: true
-        filterBySpanID: false
-        lokiSearch: true
+            value: instance
       tracesToMetrics:
         datasourceUid: prometheus
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
         tags:
           - key: service.name
             value: service

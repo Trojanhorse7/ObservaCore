@@ -492,8 +492,21 @@ fi
 systemctl start grafana-server
 sleep 3
 
-PUBLIC_IP=$(curl -sf http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null \
-    || hostname -I | awk '{print $1}')
+# Use SERVER_HOST from Terraform as the authoritative public IP.
+# Falls back to EC2 metadata, then checkip, then private IP (logs a warning).
+if [ -n "${SERVER_HOST}" ]; then
+    PUBLIC_IP="${SERVER_HOST}"
+    log "Using SERVER_HOST for public IP: ${PUBLIC_IP}"
+else
+    PUBLIC_IP=$(curl -sf --max-time 5 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null)
+    if [ -z "${PUBLIC_IP}" ]; then
+        PUBLIC_IP=$(curl -sf --max-time 5 https://checkip.amazonaws.com 2>/dev/null | tr -d '[:space:]')
+    fi
+    if [ -z "${PUBLIC_IP}" ]; then
+        log "WARNING: Could not resolve public IP — alert dashboard links will use private IP. Set server_host in terraform.tfvars."
+        PUBLIC_IP=$(hostname -I | awk '{print $1}')
+    fi
+fi
 
 # ── Patch dashboard_url in deployed configs with the real public IP ───────────
 # Source files keep localhost (portable); only the deployed copies are patched.

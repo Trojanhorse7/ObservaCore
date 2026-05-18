@@ -466,7 +466,7 @@ PUBLIC_IP=$(curl -sf http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/
 
 log "======================================"
 log "Installation complete"
-log "Grafana:      http://${PUBLIC_IP}:3000  (admin/admin123)"
+log "Grafana:      http://${PUBLIC_IP}:3000  (admin/${GRAFANA_PASS})"
 log "Prometheus:   http://${PUBLIC_IP}:9090"
 log "Alertmanager: http://${PUBLIC_IP}:9093"
 log "Loki:         http://${PUBLIC_IP}:3100"

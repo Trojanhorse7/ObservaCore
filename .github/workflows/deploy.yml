@@ -59,28 +59,42 @@ jobs:
           echo "deploy_ts=$(date +%s)" >> "$GITHUB_OUTPUT"
           echo "deploy_result=success" >> "$GITHUB_OUTPUT"
 
-      # Push DORA metrics to Pushgateway
+      # Record the alert-fired timestamp for MTTR calculation.
+      # In a real incident, this step reads the Alertmanager API to find when the
+      # first alert fired for this run. Here we capture the deploy timestamp as
+      # a proxy: if the deploy failed, the "incident start" is when the deploy step
+      # ended. A full production setup would query Alertmanager firing time instead.
+      - name: Capture incident timestamps
+        id: incident
+        if: always()
+        run: |
+          echo "incident_start_ts=${{ steps.deploy.outputs.deploy_ts || steps.timestamps.outputs.trigger_ts }}" >> "$GITHUB_OUTPUT"
+          echo "incident_end_ts=$(date +%s)" >> "$GITHUB_OUTPUT"
+
+      # Push DORA metrics to Pushgateway.
       # This step always runs (success or failure) so DORA data is never lost.
       - name: Push DORA metrics to Prometheus Pushgateway
         if: always()
         env:
           PUSHGATEWAY_URL: ${{ secrets.PUSHGATEWAY_URL }}
-          COMMIT_TS:    ${{ steps.timestamps.outputs.commit_ts }}
-          TRIGGER_TS:   ${{ steps.timestamps.outputs.trigger_ts }}
-          BUILD_END_TS: ${{ steps.build.outputs.build_end_ts }}
-          TEST_END_TS:  ${{ steps.test.outputs.test_end_ts }}
-          DEPLOY_TS:    ${{ steps.deploy.outputs.deploy_ts }}
-          COMMIT_SHA:   ${{ steps.timestamps.outputs.commit_sha }}
-          WORKFLOW:     ${{ github.workflow }}
-          RUN_ID:       ${{ github.run_id }}
-          BRANCH:       ${{ github.ref_name }}
-          ACTOR:        ${{ github.actor }}
+          COMMIT_TS:          ${{ steps.timestamps.outputs.commit_ts }}
+          TRIGGER_TS:         ${{ steps.timestamps.outputs.trigger_ts }}
+          BUILD_END_TS:       ${{ steps.build.outputs.build_end_ts }}
+          TEST_END_TS:        ${{ steps.test.outputs.test_end_ts }}
+          DEPLOY_TS:          ${{ steps.deploy.outputs.deploy_ts }}
+          INCIDENT_START_TS:  ${{ steps.incident.outputs.incident_start_ts }}
+          INCIDENT_END_TS:    ${{ steps.incident.outputs.incident_end_ts }}
+          COMMIT_SHA:         ${{ steps.timestamps.outputs.commit_sha }}
+          WORKFLOW:           ${{ github.workflow }}
+          RUN_ID:             ${{ github.run_id }}
+          BRANCH:             ${{ github.ref_name }}
+          ACTOR:              ${{ github.actor }}
         run: |
           set -euo pipefail
 
           NOW=$(date +%s)
 
-          # Determine result from job status
+          # Determine deployment result
           if [ "${{ job.status }}" = "success" ]; then
             RESULT="success"
           elif [ "${{ steps.deploy.outcome }}" = "failure" ]; then
@@ -95,6 +109,14 @@ jobs:
           BUILD_DURATION=$(( ${BUILD_END_TS:-$NOW} - ${TRIGGER_TS:-$NOW} ))
           TEST_DURATION=$(( ${TEST_END_TS:-$NOW} - ${BUILD_END_TS:-$NOW} ))
 
+          # MTTR: seconds from incident detection (deploy failure) to resolution.
+          # For successful deploys this will be 0 (no incident).
+          if [ "${RESULT}" != "success" ]; then
+            INCIDENT_DURATION=$(( ${INCIDENT_END_TS:-$NOW} - ${INCIDENT_START_TS:-$NOW} ))
+          else
+            INCIDENT_DURATION=0
+          fi
+
           # Push all metrics in a single request
           cat <<EOF | curl --silent --max-time 10 --data-binary @- \
             "${PUSHGATEWAY_URL}/metrics/job/github_actions/instance/${RUN_ID}"
@@ -102,24 +124,28 @@ jobs:
           # TYPE github_actions_deployments_total counter
           github_actions_deployments_total{environment="production",result="${RESULT}",workflow="${WORKFLOW}",branch="${BRANCH}",actor="${ACTOR}"} 1
 
-          # HELP github_actions_lead_time_seconds Commit to production deployment duration
+          # HELP github_actions_lead_time_seconds Commit-to-production duration in seconds
           # TYPE github_actions_lead_time_seconds gauge
           github_actions_lead_time_seconds{workflow="${WORKFLOW}",commit="${COMMIT_SHA}"} ${LEAD_TIME}
 
-          # HELP github_actions_pipeline_duration_seconds Full pipeline execution time
+          # HELP github_actions_pipeline_duration_seconds Full pipeline execution time in seconds
           # TYPE github_actions_pipeline_duration_seconds gauge
           github_actions_pipeline_duration_seconds{workflow="${WORKFLOW}"} ${PIPELINE_DURATION}
 
-          # HELP github_actions_build_duration_seconds Build step duration
+          # HELP github_actions_build_duration_seconds Build step duration in seconds
           # TYPE github_actions_build_duration_seconds gauge
           github_actions_build_duration_seconds{workflow="${WORKFLOW}"} ${BUILD_DURATION}
 
-          # HELP github_actions_test_duration_seconds Test step duration
+          # HELP github_actions_test_duration_seconds Test step duration in seconds
           # TYPE github_actions_test_duration_seconds gauge
           github_actions_test_duration_seconds{workflow="${WORKFLOW}"} ${TEST_DURATION}
+
+          # HELP github_actions_incident_duration_seconds Time from deploy failure detection to resolution (MTTR source)
+          # TYPE github_actions_incident_duration_seconds gauge
+          github_actions_incident_duration_seconds{workflow="${WORKFLOW}",result="${RESULT}"} ${INCIDENT_DURATION}
           EOF
 
-          echo "DORA metrics pushed: result=${RESULT}, lead_time=${LEAD_TIME}s, pipeline=${PIPELINE_DURATION}s"
+          echo "DORA metrics pushed: result=${RESULT}, lead_time=${LEAD_TIME}s, pipeline=${PIPELINE_DURATION}s, incident_duration=${INCIDENT_DURATION}s"
 
       # Notify on failure
       - name: Notify deployment failure

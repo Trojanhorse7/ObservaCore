@@ -9,11 +9,11 @@ terraform {
 
 resource "null_resource" "install_observability_stack" {
   triggers = {
-    script_hash = filemd5("/home/ubuntu/observability-platform/scripts/install.sh")
+    script_hash = filemd5("/home/ubuntu/ObservaCore/scripts/install.sh")
     always_run  = timestamp()
   }
 
   provisioner "local-exec" {
-    command = "sudo bash /home/ubuntu/observability-platform/scripts/install.sh 2>&1 | tee /var/log/observability-install.log"
+    command = "sudo bash /home/ubuntu/ObservaCore/scripts/install.sh 2>&1 | tee /var/log/observability-install.log"
   }
 }

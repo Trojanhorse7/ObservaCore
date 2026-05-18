@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_DIR="/home/ubuntu/observability-platform"
+REPO_DIR="/home/ubuntu/ObservaCore"
 LOG_FILE="/var/log/observability-install.log"
 
 log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"; }
@@ -314,9 +314,84 @@ cp "$REPO_DIR/grafana/provisioning/dashboards/"*.yml  /etc/grafana/provisioning/
 cp "$REPO_DIR/grafana/dashboards/"*.json              /var/lib/grafana/dashboards/
 chown -R grafana:grafana /etc/grafana/provisioning /var/lib/grafana/dashboards
 
-sed -i 's/;admin_password = admin/admin_password = admin123/' /etc/grafana/grafana.ini
-sed -i 's/;admin_user = admin/admin_user = admin/'            /etc/grafana/grafana.ini
+GRAFANA_PASS="${GRAFANA_ADMIN_PASSWORD:-admin}"
+sed -i "s/;admin_password = admin/admin_password = ${GRAFANA_PASS}/" /etc/grafana/grafana.ini
+sed -i 's/;admin_user = admin/admin_user = admin/'                   /etc/grafana/grafana.ini
+log "Grafana admin password set (use GRAFANA_ADMIN_PASSWORD env var to override)"
 log "Grafana configured"
+
+# ── Pushgateway ───────────────────────────────────────────────────────────────
+# Required for DORA metrics pushed from GitHub Actions
+PUSHGATEWAY_VERSION="1.8.0"
+if ! install_binary pushgateway; then
+    log "Installing Pushgateway ${PUSHGATEWAY_VERSION}..."
+    cd /tmp
+    download "https://github.com/prometheus/pushgateway/releases/download/v${PUSHGATEWAY_VERSION}/pushgateway-${PUSHGATEWAY_VERSION}.linux-amd64.tar.gz" \
+        "pushgateway.tar.gz"
+    tar -xzf pushgateway.tar.gz
+    cp "pushgateway-${PUSHGATEWAY_VERSION}.linux-amd64/pushgateway" /usr/local/bin/
+    chown prometheus:prometheus /usr/local/bin/pushgateway
+fi
+
+cat > /etc/systemd/system/pushgateway.service << 'UNIT'
+[Unit]
+Description=Prometheus Pushgateway
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=prometheus
+Group=prometheus
+Type=simple
+Restart=always
+RestartSec=5s
+ExecStart=/usr/local/bin/pushgateway \
+    --web.listen-address=0.0.0.0:9091 \
+    --persistence.file=/var/lib/prometheus/pushgateway.db \
+    --persistence.interval=5m
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+log "Pushgateway configured"
+
+# ── Demo App ──────────────────────────────────────────────────────────────────
+# Instrumented Flask app — emits Prometheus metrics and OTel traces
+if ! command -v python3 &>/dev/null; then
+    log "ERROR: python3 not found"
+    exit 1
+fi
+
+log "Installing demo app dependencies..."
+mkdir -p /opt/demo-app
+cp "$REPO_DIR/demo-app/main.py"          /opt/demo-app/
+cp "$REPO_DIR/demo-app/requirements.txt" /opt/demo-app/
+python3 -m venv /opt/demo-app/venv
+/opt/demo-app/venv/bin/pip install --quiet -r /opt/demo-app/requirements.txt
+
+id demo-app &>/dev/null || useradd --no-create-home --shell /bin/false demo-app
+chown -R demo-app:demo-app /opt/demo-app
+
+cat > /etc/systemd/system/demo-app.service << 'UNIT'
+[Unit]
+Description=ObservaCore Demo App
+Wants=network-online.target otelcol.service
+After=network-online.target otelcol.service
+
+[Service]
+User=demo-app
+Group=demo-app
+Type=simple
+Restart=always
+RestartSec=5s
+WorkingDirectory=/opt/demo-app
+Environment=OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+ExecStart=/opt/demo-app/venv/bin/python main.py
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+log "Demo app configured"
 
 # ── OTel Collector ────────────────────────────────────────────────────────────
 OTEL_VERSION="0.97.0"
@@ -357,7 +432,7 @@ log "OTel Collector configured"
 log "Starting all services..."
 systemctl daemon-reload
 
-SERVICES="prometheus node_exporter blackbox_exporter alertmanager loki tempo grafana-server otelcol"
+SERVICES="prometheus node_exporter blackbox_exporter alertmanager loki tempo grafana-server otelcol pushgateway demo-app"
 
 for svc in $SERVICES; do
     systemctl enable "$svc"

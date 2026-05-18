@@ -13,7 +13,9 @@ processors:
 
 exporters:
   otlp/tempo:
-    endpoint: localhost:4317
+    # Forward to Tempo's internal OTLP gRPC port (4319).
+    # Tempo listens on 4319 internally; this collector owns the public 4317 port.
+    endpoint: localhost:4319
     tls:
       insecure: true
 

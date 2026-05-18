@@ -66,7 +66,7 @@ groups:
             At this rate 2% of the monthly error budget will be consumed in 1 hour.
             Immediate action required.
           dashboard_url: "http://localhost:3000/d/slo-error-budget"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/slo-fast-burn.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/slo-fast-burn.md"
 
       # Slow Burn — warning
       # 5x burn rate means 5% of the monthly error budget is consumed in 6 hours.
@@ -92,7 +92,7 @@ groups:
             5% of the monthly error budget will be consumed in the next 6 hours if this continues.
             Investigate before this escalates to a fast burn.
           dashboard_url: "http://localhost:3000/d/slo-error-budget"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/slo-slow-burn.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/slo-slow-burn.md"
 
       # AVAILABILITY SLO — 99.5% UPTIME TARGET
       # Based on Blackbox Exporter probe_success
@@ -114,7 +114,7 @@ groups:
             Probe success rate over the last hour is below SLO.
             Monthly availability budget burning at 14.4x normal rate.
           dashboard_url: "http://localhost:3000/d/slo-error-budget"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/slo-fast-burn.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/slo-fast-burn.md"
 
       - alert: AvailabilitySlowBurn
         expr: |
@@ -132,7 +132,7 @@ groups:
             Probe success rate over the last 6 hours is degraded.
             Monthly availability budget burning at 5x normal rate.
           dashboard_url: "http://localhost:3000/d/slo-error-budget"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/slo-slow-burn.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/slo-slow-burn.md"
 
       # LATENCY SLO — 95% of REQUESTS < 500ms TARGET
       # Error budget = 5% of requests may exceed 500ms
@@ -141,8 +141,8 @@ groups:
         expr: |
           (
             1 - (
-              sum(rate(http_request_duration_seconds_bucket{le="0.5", status!~"5.."}[1h]))
-              / sum(rate(http_request_duration_seconds_count{status!~"5.."}[1h]))
+              sum(rate(http_request_duration_seconds_bucket{le="0.5"}[1h]))
+              / sum(rate(http_request_duration_seconds_count[1h]))
             )
           ) > (14.4 * 0.05)
         for: 2m
@@ -156,14 +156,14 @@ groups:
             Less than 95% of requests are completing under 500ms.
             Latency budget burning at 14.4x normal rate.
           dashboard_url: "http://localhost:3000/d/slo-error-budget"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/slo-fast-burn.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/slo-fast-burn.md"
 
       - alert: LatencySlowBurn
         expr: |
           (
             1 - (
-              sum(rate(http_request_duration_seconds_bucket{le="0.5", status!~"5.."}[6h]))
-              / sum(rate(http_request_duration_seconds_count{status!~"5.."}[6h]))
+              sum(rate(http_request_duration_seconds_bucket{le="0.5"}[6h]))
+              / sum(rate(http_request_duration_seconds_count[6h]))
             )
           ) > (5 * 0.05)
         for: 15m
@@ -177,4 +177,4 @@ groups:
             Latency budget burning at 5x normal rate over the last 6 hours.
             Investigate slow endpoints before this escalates.
           dashboard_url: "http://localhost:3000/d/slo-error-budget"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/slo-slow-burn.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/slo-slow-burn.md"

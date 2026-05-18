@@ -95,7 +95,7 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
-          "expr": "sum(rate(http_request_duration_seconds_bucket{le=\"0.5\", status!~\"5..\"}[5m])) / sum(rate(http_request_duration_seconds_count{status!~\"5..\"}[5m])) * 100",
+          "expr": "sum(rate(http_request_duration_seconds_bucket{le=\"0.5\"}[5m])) / sum(rate(http_request_duration_seconds_count[5m])) * 100",
           "legendFormat": "< 500ms %",
           "refId": "A"
         }

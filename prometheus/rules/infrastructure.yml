@@ -20,7 +20,7 @@ groups:
           summary: "High CPU usage on {{ $labels.instance }}"
           description: "CPU usage is {{ $value | printf \"%.1f\" }}% — threshold 80%."
           dashboard_url: "http://localhost:3000/d/node-exporter"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/cpu-warning.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/cpu-high.md"
 
       - alert: CPUCritical
         expr: |
@@ -37,7 +37,7 @@ groups:
           summary: "Critical CPU usage on {{ $labels.instance }}"
           description: "CPU usage is {{ $value | printf \"%.1f\" }}% — threshold 90%. Escalate if not resolved in 15 minutes."
           dashboard_url: "http://localhost:3000/d/node-exporter"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/cpu-critical.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/cpu-high.md"
 
       - alert: CPURecovered
         expr: |
@@ -69,7 +69,7 @@ groups:
           summary: "High memory usage on {{ $labels.instance }}"
           description: "Memory usage is {{ $value | printf \"%.1f\" }}% — threshold 80%."
           dashboard_url: "http://localhost:3000/d/node-exporter"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/memory-warning.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/memory-high.md"
 
       - alert: MemoryCritical
         expr: |
@@ -84,7 +84,7 @@ groups:
           summary: "Critical memory usage on {{ $labels.instance }}"
           description: "Memory usage is {{ $value | printf \"%.1f\" }}% — OOM risk. Consider restarting the largest consumer."
           dashboard_url: "http://localhost:3000/d/node-exporter"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/memory-critical.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/memory-high.md"
 
       - alert: MemoryRecovered
         expr: |
@@ -115,7 +115,7 @@ groups:
           summary: "Disk usage warning on {{ $labels.instance }}"
           description: "Disk on {{ $labels.mountpoint }} is {{ $value | printf \"%.1f\" }}% full — threshold 75%."
           dashboard_url: "http://localhost:3000/d/node-exporter"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/disk-warning.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/disk-high.md"
 
       - alert: DiskCritical
         expr: |
@@ -131,7 +131,7 @@ groups:
           summary: "Disk critically full on {{ $labels.instance }}"
           description: "Disk on {{ $labels.mountpoint }} is {{ $value | printf \"%.1f\" }}% full — threshold 90%. Write failures imminent."
           dashboard_url: "http://localhost:3000/d/node-exporter"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/disk-critical.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/disk-high.md"
 
       # HOST DOWN
 
@@ -145,7 +145,7 @@ groups:
           summary: "Host {{ $labels.instance }} is unreachable"
           description: "Blackbox probe has failed for 2+ consecutive minutes. The host may be down or the network route is broken."
           dashboard_url: "http://localhost:3000/d/blackbox-exporter"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/host-down.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/server-down.md"
 
       - alert: HostRecovered
         expr: probe_success{job="blackbox-http"} == 1
@@ -168,7 +168,8 @@ groups:
         annotations:
           summary: "SSL certificate expiring soon for {{ $labels.instance }}"
           description: "Certificate expires in {{ $value | printf \"%.0f\" }} days."
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/host-down.md"
+          dashboard_url: "http://localhost:3000/d/blackbox-exporter"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/ssl-cert-expiry.md"
 
       - alert: SSLCertExpiryCritical
         expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 7
@@ -179,3 +180,5 @@ groups:
         annotations:
           summary: "SSL certificate expiring in {{ $value | printf \"%.0f\" }} days for {{ $labels.instance }}"
           description: "Immediate renewal required — service will become unavailable when certificate expires."
+          dashboard_url: "http://localhost:3000/d/blackbox-exporter"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/ssl-cert-expiry.md"

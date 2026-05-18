@@ -34,7 +34,7 @@ groups:
             rollback, or a hotfix. DORA classification has dropped from Elite/High.
             Investigate recent deployments immediately.
           dashboard_url: "http://localhost:3000/d/dora-metrics"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/cfr-threshold-exceeded.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/cfr-threshold-exceeded.md"
 
       - alert: CFRThresholdWarning
         expr: cicd:deployment_failure_rate:ratio7d * 100 > 5
@@ -49,7 +49,7 @@ groups:
             CFR has crossed 5%. If the trend continues it will breach the 10% SLO.
             Review recent deployments and pipeline quality.
           dashboard_url: "http://localhost:3000/d/dora-metrics"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/cfr-threshold-exceeded.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/cfr-threshold-exceeded.md"
 
       # MEAN TIME TO RESTORE
       # SLO threshold: MTTR must stay below 60 minutes (3600 seconds)
@@ -67,7 +67,7 @@ groups:
             Average mean time to restore has exceeded the 60-minute SLO target.
             Review the incident response process — manual steps may be adding delay.
           dashboard_url: "http://localhost:3000/d/dora-metrics"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/mttr-exceeded.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/mttr-exceeded.md"
 
       # DEPLOYMENT FREQUENCY
       # Alert when no deployments have been seen for more than 7 days (stale pipeline)
@@ -87,4 +87,4 @@ groups:
             The Pushgateway has not received any deployment metrics for 7 days.
             Either the pipeline is stalled or the metric push step is broken.
           dashboard_url: "http://localhost:3000/d/dora-metrics"
-          runbook_url: "https://github.com/yourorg/observability-platform/blob/main/runbooks/cfr-threshold-exceeded.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/cfr-threshold-exceeded.md"

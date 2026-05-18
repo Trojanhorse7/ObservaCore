@@ -1,0 +1,39 @@
+# Copy this file to terraform.tfvars and fill in your values.
+# terraform.tfvars is gitignored — never commit real secrets.
+#
+#   cp terraform.tfvars.example terraform.tfvars
+#   # Edit terraform.tfvars with your values
+#   terraform init && terraform apply -auto-approve
+
+# -----------------------------------------------------------------------
+# Required — must be set before running terraform apply
+# -----------------------------------------------------------------------
+
+# IP address or hostname of your server
+server_host = "YOUR_SERVER_IP"
+
+# Slack incoming webhook URL (from https://api.slack.com/messaging/webhooks)
+# The webhook should post to #DevOps-Alerts
+slack_webhook_url = "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+
+# -----------------------------------------------------------------------
+# Optional — defaults are sensible for most deployments
+# -----------------------------------------------------------------------
+
+# Grafana admin password (change before first login)
+# Choose a strong password — this is set once at install time
+grafana_admin_password = "CHANGE_ME_STRONG_PASSWORD"
+
+# URLs for Blackbox Exporter to probe
+blackbox_targets = [
+  "http://localhost:8080/health",
+  "http://localhost:8080/"
+]
+
+# Prometheus Pushgateway URL (used by GitHub Actions to push DORA metrics)
+pushgateway_url = "http://localhost:9091"
+
+# Data retention periods
+prometheus_retention       = "30d"   # 30 days of metrics
+loki_retention_hours       = 720     # 30 days of logs
+tempo_block_retention_hours = 168    # 7 days of traces

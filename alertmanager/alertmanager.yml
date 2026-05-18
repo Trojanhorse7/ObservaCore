@@ -72,4 +72,4 @@ receivers:
             url: '{{ (index .Alerts 0).Annotations.dashboard_url | default "http://localhost:3000" }}'
           - type: button
             text: 'View Runbook'
-            url: '{{ (index .Alerts 0).Annotations.runbook_url | default "https://github.com/yourorg/observability-platform" }}'
+            url: '{{ (index .Alerts 0).Annotations.runbook_url | default "https://github.com/Trojanhorse7/ObservaCore/tree/main/runbooks" }}'

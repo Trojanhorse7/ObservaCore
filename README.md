@@ -24,14 +24,16 @@ The platform gives any engineering team:
 
 | Component | Version | Port | Purpose |
 |---|---|---|---|
-| Prometheus | 2.51+ | 9090 | Metrics scrape and storage |
-| Loki | 3.0+ | 3100 | Log aggregation |
-| Tempo | 2.4+ | 3200 | Distributed tracing |
-| Grafana | 10.4+ | 3000 | Unified observability UI |
-| Alertmanager | 0.27+ | 9093 | Alert routing and deduplication |
-| Node Exporter | 1.7+ | 9100 | System metrics (CPU, RAM, disk, network) |
-| Blackbox Exporter | 0.24+ | 9115 | HTTP probe and SSL expiry monitoring |
-| OTel Collector | 0.97+ | 4317/4318 | Telemetry pipeline (logs → Loki, traces → Tempo) |
+| Prometheus | 2.51.2 | 9090 | Metrics scrape and storage |
+| Loki | 2.9.6 | 3100 | Log aggregation |
+| Tempo | 2.4.1 | 3200 | Distributed tracing |
+| Grafana | latest stable | 3000 | Unified observability UI |
+| Alertmanager | 0.27.0 | 9093 | Alert routing and deduplication |
+| Node Exporter | 1.7.0 | 9100 | System metrics (CPU, RAM, disk, network) |
+| Blackbox Exporter | 0.24.0 | 9115 | HTTP probe and SSL expiry monitoring |
+| OTel Collector | 0.97.0 | 4317/4318 | Telemetry pipeline (logs → Loki, traces → Tempo) |
+| Pushgateway | 1.8.0 | 9091 | DORA metrics ingestion from GitHub Actions |
+| Demo App | — | 8080 | Instrumented Flask app (metrics + traces) |
 
 All services run as native Linux binaries managed by **systemd**. No Docker.
 
@@ -40,28 +42,36 @@ All services run as native Linux binaries managed by **systemd**. No Docker.
 ## One-Command Deployment
 
 ```bash
-cd terraform
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars — set your server IP, Slack webhook URL, target URLs
+# 1. Clone the repo to the expected path on your server
+git clone https://github.com/Trojanhorse7/ObservaCore.git /home/ubuntu/ObservaCore
+
+# 2. Set your Slack webhook URL before deploying
+sed -i "s/replace this/YOUR_SLACK_WEBHOOK_URL/" /home/ubuntu/ObservaCore/alertmanager/alertmanager.yml
+
+# 3. Run Terraform
+cd /home/ubuntu/ObservaCore/terraform
 terraform init && terraform apply -auto-approve
 ```
 
-Terraform will:
+Terraform calls `scripts/install.sh` which will:
 1. Create a dedicated system user for each service
-2. Download the correct binary version
-3. Write all config files from templates
-4. Install and enable systemd unit files
-5. Start every service and set it to start on boot
+2. Download and install all binaries with version pins
+3. Copy config files from the repo into system paths
+4. Write and enable systemd unit files
+5. Start every service and verify each one is healthy
 
 ### Verify the stack is healthy
 
 ```bash
 systemctl is-active prometheus loki tempo grafana-server alertmanager \
-  node-exporter blackbox-exporter otel-collector
+  node_exporter blackbox_exporter otelcol pushgateway demo-app
 
 curl http://localhost:9090/-/healthy   # Prometheus Server is Healthy.
 curl http://localhost:3100/ready       # ready
 curl http://localhost:3200/ready       # ready
+
+# Or run the full automated health check (checks all services + HTTP endpoints):
+sudo bash /home/ubuntu/ObservaCore/scripts/verify.sh
 ```
 
 ---
@@ -84,6 +94,8 @@ ObservaCore/
 │   ├── dashboards/
 │   │   ├── dora-metrics.json
 │   │   ├── slo-error-budget.json
+│   │   ├── node-exporter.json
+│   │   ├── blackbox-exporter.json
 │   │   └── unified-observability.json
 │   └── provisioning/
 │       ├── dashboards/dashboards.yml
@@ -103,10 +115,15 @@ ObservaCore/
 │   ├── memory-high.md
 │   ├── disk-high.md
 │   ├── server-down.md
+│   ├── ssl-cert-expiry.md
 │   ├── slo-fast-burn.md
-│   └── high-cfr.md
+│   ├── slo-slow-burn.md
+│   ├── high-cfr.md
+│   ├── cfr-threshold-exceeded.md
+│   └── mttr-exceeded.md
 ├── slo/
-│   └── slo-definitions.md
+│   ├── slo-definitions.md
+│   └── error-budget-policy.md
 ├── tempo/
 │   └── tempo-config.yml
 ```
@@ -121,8 +138,8 @@ All dashboards are provisioned as JSON — never configured through the Grafana 
 |---|---|---|
 | DORA Metrics | `dora-metrics.json` | DF, LTC, CFR, MTTR with Elite/High/Medium/Low classification |
 | SLO & Error Budget | `slo-error-budget.json` | SLI gauges, budget remaining, burn rate time series |
-| Node Exporter | *(Pabby)* | CPU, memory, disk I/O, network I/O, load averages |
-| Blackbox Exporter | *(Pabby)* | Uptime, HTTP response times, SSL expiry countdown |
+| Node Exporter | `node-exporter.json` | CPU (total + per-core), memory, disk I/O, network I/O, load averages |
+| Blackbox Exporter | `blackbox-exporter.json` | Uptime timeline, HTTP response times (p50/p90/p99), SSL expiry countdown |
 | Unified Observability | `unified-observability.json` | Metric → Loki log → Tempo trace drill-down |
 
 ---
@@ -242,5 +259,5 @@ Three chaos scenarios documented in `game-day/`:
 
 | Engineer | Owns |
 |---|---|
-| **Pabby** | LGTP stack deployment (Terraform + systemd), Loki/Tempo/OTel configs, Four Golden Signals SLIs, SLO definitions, error budget policy, Node Exporter dashboard, Blackbox Exporter dashboard, all runbooks, Post-Incident Review |
-| **Trojan** | Alert rules, Alertmanager routing + Slack templates, DORA metrics + GitHub Actions integration, DORA dashboard, SLO/Error Budget dashboard, Unified Observability dashboard, Game Day execution |
+| **Pabby** | LGTP stack deployment (Terraform + systemd), Loki/Tempo/OTel configs, Four Golden Signals SLIs, SLO definitions, Post-Incident Review |
+| **Trojan** | Alert rules, Alertmanager routing + Slack templates, DORA metrics + GitHub Actions integration, all five Grafana dashboards, error budget policy, all runbooks, Game Day execution |

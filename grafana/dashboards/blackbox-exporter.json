@@ -1,0 +1,291 @@
+{
+  "uid": "blackbox-exporter",
+  "title": "Blackbox Exporter — Probe & SSL",
+  "description": "Uptime timeline, HTTP response times (p50/p90/p99), SSL expiration, and probe success rate",
+  "tags": ["observacore", "blackbox", "uptime", "ssl"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "60s",
+  "time": { "from": "now-24h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "target",
+        "label": "Target",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(probe_success{job=\"blackbox-http\"}, instance)",
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "multi": true,
+        "current": {}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Availability",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Probe Success Rate (24h)",
+      "description": "Percentage of probes that returned success over the last 24 hours",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.995 },
+              { "color": "green", "value": 0.999 }
+            ]
+          },
+          "mappings": []
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["mean"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "targets": [
+        {
+          "expr": "avg_over_time(probe_success{job=\"blackbox-http\", instance=~\"$target\"}[24h])",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Current Status",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "textMode": "auto" },
+      "targets": [
+        {
+          "expr": "probe_success{job=\"blackbox-http\", instance=~\"$target\"}",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Uptime / Downtime Timeline",
+      "description": "1 = probe succeeded (UP), 0 = probe failed (DOWN)",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "thresholdsStyle": { "mode": "area" }
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "probe_success{job=\"blackbox-http\", instance=~\"$target\"}",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "row",
+      "title": "HTTP Response Time",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 11 }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "HTTP Response Time — p50 / p90 / p99",
+      "description": "Probe HTTP response duration percentiles. Values above 500ms may indicate latency SLO degradation.",
+      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2, "fillOpacity": 5 }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "p99" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p90" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p50" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "quantile_over_time(0.50, probe_duration_seconds{job=\"blackbox-http\", instance=~\"$target\"}[5m])",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "quantile_over_time(0.90, probe_duration_seconds{job=\"blackbox-http\", instance=~\"$target\"}[5m])",
+          "legendFormat": "p90"
+        },
+        {
+          "expr": "quantile_over_time(0.99, probe_duration_seconds{job=\"blackbox-http\", instance=~\"$target\"}[5m])",
+          "legendFormat": "p99"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Avg Response Time (1h)",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 300 },
+              { "color": "red", "value": 500 }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["mean"] }, "colorMode": "background" },
+      "targets": [
+        {
+          "expr": "avg_over_time(probe_duration_seconds{job=\"blackbox-http\", instance=~\"$target\"}[1h]) * 1000",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "HTTP Status Code",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 200 },
+              { "color": "yellow", "value": 300 },
+              { "color": "red", "value": 400 }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+      "targets": [
+        {
+          "expr": "probe_http_status_code{job=\"blackbox-http\", instance=~\"$target\"}",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "row",
+      "title": "SSL Certificate",
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 }
+    },
+    {
+      "id": 10,
+      "type": "gauge",
+      "title": "SSL Certificate Expiry — Days Remaining",
+      "description": "Days until the TLS certificate expires. Red = < 7 days, Yellow = < 30 days.",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 21 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "min": 0,
+          "max": 90,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 7 },
+              { "color": "green", "value": 30 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "(probe_ssl_earliest_cert_expiry{job=\"blackbox-http\", instance=~\"$target\"} - time()) / 86400",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "SSL Expiry Countdown (days)",
+      "description": "Trend of days remaining until SSL certificate expiry",
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 21 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 7 },
+              { "color": "green", "value": 30 }
+            ]
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "thresholdsStyle": { "mode": "line+area" }
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "(probe_ssl_earliest_cert_expiry{job=\"blackbox-http\", instance=~\"$target\"} - time()) / 86400",
+          "legendFormat": "{{instance}} — days remaining"
+        }
+      ]
+    }
+  ]
+}

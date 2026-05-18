@@ -36,6 +36,8 @@ check "loki"              "3100" "/ready"
 check "tempo"             "3200" "/ready"
 check "grafana-server"    "3000" "/api/health"
 check "otelcol"           ""
+check "pushgateway"       "9091" "/metrics"
+check "demo-app"          "8080" "/health"
 
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"

@@ -203,6 +203,17 @@ fi
 
 cp "$REPO_DIR/alertmanager/alertmanager.yml" /etc/alertmanager/
 cp "$REPO_DIR/alertmanager/templates/"*.tmpl /etc/alertmanager/templates/
+
+# Inject the Slack webhook URL from the environment into the deployed config
+# The source file keeps 'replace this' as a placeholder (never commit real URLs)
+if [ -n "${SLACK_WEBHOOK_URL}" ] && [ "${SLACK_WEBHOOK_URL}" != "replace this" ]; then
+    sed -i "s|slack_api_url: 'replace this'|slack_api_url: '${SLACK_WEBHOOK_URL}'|" \
+        /etc/alertmanager/alertmanager.yml
+    log "Slack webhook URL injected into alertmanager.yml"
+else
+    log "WARNING: SLACK_WEBHOOK_URL not set — alertmanager.yml still has placeholder. Alerts will not fire."
+fi
+
 chown -R alertmanager:alertmanager /etc/alertmanager /var/lib/alertmanager
 
 cat > /etc/systemd/system/alertmanager.service << 'UNIT'

@@ -316,8 +316,10 @@ cp "$REPO_DIR/grafana/dashboards/"*.json              /var/lib/grafana/dashboard
 chown -R grafana:grafana /etc/grafana/provisioning /var/lib/grafana/dashboards
 
 GRAFANA_PASS="${GRAFANA_ADMIN_PASSWORD:-admin}"
-sed -i "s/;admin_password = admin/admin_password = ${GRAFANA_PASS}/" /etc/grafana/grafana.ini
-sed -i 's/;admin_user = admin/admin_user = admin/'                   /etc/grafana/grafana.ini
+# Match both commented (;admin_password) and already-uncommented (admin_password) forms
+# so re-runs and upgrades always apply the correct password
+sed -i "s/^;*admin_password = .*/admin_password = ${GRAFANA_PASS}/" /etc/grafana/grafana.ini
+sed -i 's/^;*admin_user = .*/admin_user = admin/'                   /etc/grafana/grafana.ini
 log "Grafana admin password set (use GRAFANA_ADMIN_PASSWORD env var to override)"
 log "Grafana configured"
 
@@ -461,8 +463,36 @@ for svc in $SERVICES; do
     fi
 done
 
+# ── Force Grafana admin password via CLI (works on re-runs and existing DBs) ──
+# Stop Grafana first to release the DB lock, reset, then restart
+log "Setting Grafana admin password via grafana-cli..."
+systemctl stop grafana-server
+sleep 2
+GRAFANA_BIN=$(command -v grafana || echo "/usr/bin/grafana")
+CLI_OUTPUT=$(cd /usr/share/grafana && "${GRAFANA_BIN}" cli admin reset-admin-password "${GRAFANA_PASS}" \
+    --config /etc/grafana/grafana.ini 2>&1)
+CLI_EXIT=$?
+log "grafana cli output: ${CLI_OUTPUT}"
+if [ $CLI_EXIT -eq 0 ]; then
+    log "Grafana admin password confirmed: admin/${GRAFANA_PASS}"
+else
+    log "WARNING: grafana cli reset failed (exit ${CLI_EXIT})"
+fi
+systemctl start grafana-server
+sleep 3
+
 PUBLIC_IP=$(curl -sf http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null \
     || hostname -I | awk '{print $1}')
+
+# ── Patch dashboard_url in deployed configs with the real public IP ───────────
+# Source files keep localhost (portable); only the deployed copies are patched.
+GRAFANA_URL="http://${PUBLIC_IP}:3000"
+log "Patching dashboard URLs to ${GRAFANA_URL}..."
+for f in /etc/prometheus/rules/*.yml /etc/alertmanager/alertmanager.yml; do
+    sed -i "s|http://localhost:3000|${GRAFANA_URL}|g" "$f"
+done
+systemctl reload prometheus alertmanager 2>/dev/null || true
+log "Dashboard URLs patched"
 
 log "======================================"
 log "Installation complete"

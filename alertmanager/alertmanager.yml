@@ -69,7 +69,7 @@ receivers:
         actions:
           - type: button
             text: 'View Dashboard'
-            url: '{{ (index .Alerts 0).Annotations.dashboard_url | default "http://localhost:3000" }}'
+            url: '{{ with (index .Alerts 0).Annotations.dashboard_url }}{{ . }}{{ else }}http://localhost:3000{{ end }}'
           - type: button
             text: 'View Runbook'
-            url: '{{ (index .Alerts 0).Annotations.runbook_url | default "https://github.com/Trojanhorse7/ObservaCore/tree/main/runbooks" }}'
+            url: '{{ with (index .Alerts 0).Annotations.runbook_url }}{{ . }}{{ else }}https://github.com/Trojanhorse7/ObservaCore/tree/main/runbooks{{ end }}'

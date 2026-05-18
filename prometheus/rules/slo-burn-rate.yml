@@ -62,7 +62,7 @@ groups:
         annotations:
           summary: "CRITICAL: SLO fast burn on {{ $labels.job }}"
           description: |
-            Error ratio is {{ $value | humanizePercentage }} — burn rate is {{ $value | printf \"%.1f\" }}x the budget.
+            Error ratio is {{ $value | humanizePercentage }} — burn rate is {{ $value | printf "%.1f" }}x the budget.
             At this rate 2% of the monthly error budget will be consumed in 1 hour.
             Immediate action required.
           dashboard_url: "http://localhost:3000/d/slo-error-budget"
@@ -88,7 +88,7 @@ groups:
         annotations:
           summary: "WARNING: SLO slow burn on {{ $labels.job }}"
           description: |
-            Error ratio is {{ $value | humanizePercentage }} — burn rate is {{ $value | printf \"%.1f\" }}x the budget.
+            Error ratio is {{ $value | humanizePercentage }} — burn rate is {{ $value | printf "%.1f" }}x the budget.
             5% of the monthly error budget will be consumed in the next 6 hours if this continues.
             Investigate before this escalates to a fast burn.
           dashboard_url: "http://localhost:3000/d/slo-error-budget"

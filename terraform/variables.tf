@@ -10,10 +10,9 @@ variable "slack_webhook_url" {
 }
 
 variable "grafana_admin_password" {
-  description = "Admin password for the Grafana UI (minimum 8 characters)"
+  description = "Admin password for the Grafana UI (minimum 8 characters). Set this in terraform.tfvars — do not use the default in production."
   type        = string
   sensitive   = true
-  default     = "ObservaCore2024!"
 }
 
 variable "blackbox_targets" {

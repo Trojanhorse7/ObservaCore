@@ -21,7 +21,8 @@ slack_webhook_url = "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
 # -----------------------------------------------------------------------
 
 # Grafana admin password (change before first login)
-grafana_admin_password = "ObservaCore2024!"
+# Choose a strong password — this is set once at install time
+grafana_admin_password = "CHANGE_ME_STRONG_PASSWORD"
 
 # URLs for Blackbox Exporter to probe
 blackbox_targets = [

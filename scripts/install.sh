@@ -314,8 +314,10 @@ cp "$REPO_DIR/grafana/provisioning/dashboards/"*.yml  /etc/grafana/provisioning/
 cp "$REPO_DIR/grafana/dashboards/"*.json              /var/lib/grafana/dashboards/
 chown -R grafana:grafana /etc/grafana/provisioning /var/lib/grafana/dashboards
 
-sed -i 's/;admin_password = admin/admin_password = admin123/' /etc/grafana/grafana.ini
-sed -i 's/;admin_user = admin/admin_user = admin/'            /etc/grafana/grafana.ini
+GRAFANA_PASS="${GRAFANA_ADMIN_PASSWORD:-admin}"
+sed -i "s/;admin_password = admin/admin_password = ${GRAFANA_PASS}/" /etc/grafana/grafana.ini
+sed -i 's/;admin_user = admin/admin_user = admin/'                   /etc/grafana/grafana.ini
+log "Grafana admin password set (use GRAFANA_ADMIN_PASSWORD env var to override)"
 log "Grafana configured"
 
 # ── Pushgateway ───────────────────────────────────────────────────────────────

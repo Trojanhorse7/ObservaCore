@@ -154,7 +154,3 @@ jobs:
           echo "Deployment failed. CFR alert will fire in Prometheus within 10 minutes."
           echo "Check #DevOps-Alerts in Slack for the structured alert payload."
           echo "Dashboard: ${{ secrets.GRAFANA_URL }}/d/dora-metrics"
-
-# game-day-break
-      - name: Intentional failure
-        run: exit 1

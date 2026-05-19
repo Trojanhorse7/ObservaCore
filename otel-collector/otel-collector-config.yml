@@ -10,6 +10,11 @@ processors:
   batch:
     timeout: 1s
     send_batch_size: 1024
+  resource:
+    attributes:
+      - action: insert
+        key: loki.resource.labels
+        value: service.name, deployment.environment
 
 exporters:
   otlp/tempo:
@@ -34,5 +39,5 @@ service:
 
     logs:
       receivers: [otlp]
-      processors: [batch]
+      processors: [resource, batch]
       exporters: [loki]

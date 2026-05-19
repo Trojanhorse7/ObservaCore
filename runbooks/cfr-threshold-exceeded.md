@@ -1,6 +1,6 @@
 # Runbook: CFR Threshold Exceeded
 
-**Alerts:** `CFRThresholdExceeded` (critical), `CFRThresholdWarning` (warning), `NoPipelineActivity` (warning)
+**Alerts:** `CFRThresholdExceeded` (critical), `CFRThresholdWarning` (warning)
 **Severity:** critical / warning
 **Dashboard:** http://localhost:3000/d/dora-metrics
 

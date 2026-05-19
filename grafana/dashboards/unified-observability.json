@@ -263,16 +263,41 @@
     {
       "id": 21,
       "title": "Recent Traces",
-      "description": "Traces from Tempo for the selected service and time window. Click any trace to see the full span waterfall.",
-      "type": "traces",
+      "description": "Traces from Tempo for the selected service. Click any Trace ID to open the full span waterfall in Tempo.",
+      "type": "table",
       "gridPos": { "x": 0, "y": 29, "w": 24, "h": 8 },
       "datasource": { "type": "tempo", "uid": "tempo" },
+      "options": {
+        "sortBy": [{ "displayName": "Start time", "desc": true }]
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "traceID" },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open in Tempo",
+                    "url": "/explore?left={\"datasource\":\"tempo\",\"queries\":[{\"refId\":\"A\",\"queryType\":\"traceId\",\"query\":\"${__value.raw}\"}],\"range\":{\"from\":\"now-1h\",\"to\":\"now\"}}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
       "targets": [
         {
+          "datasource": { "type": "tempo", "uid": "tempo" },
           "queryType": "traceql",
           "query": "{resource.service.name=~\"$service\"}",
           "refId": "A",
-          "limit": 20
+          "limit": 20,
+          "tableType": "traces"
         }
       ]
     },

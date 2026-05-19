@@ -19,13 +19,14 @@ from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
 from opentelemetry._logs import set_logger_provider
+from opentelemetry.sdk._logs import LoggingHandler
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
 # ---------------------------------------------------------------------------
 # Resource: identifies this service in Tempo and Loki
 # ---------------------------------------------------------------------------
 resource = Resource.create({
-    SERVICE_NAME: "observability-demo",
+    SERVICE_NAME: "demo-app",
     SERVICE_VERSION: "1.0.0",
     "deployment.environment": "production",
 })
@@ -60,6 +61,10 @@ LoggingInstrumentor().instrument(set_logging_format=True)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s level=%(levelname)s service=observability-demo traceID=%(otelTraceID)s spanID=%(otelSpanID)s %(message)s",
+)
+# Bridge Python logging → OTel LoggerProvider → OTLP → Loki
+logging.getLogger().addHandler(
+    LoggingHandler(level=logging.NOTSET, logger_provider=log_provider)
 )
 logger = logging.getLogger("observability-demo")
 

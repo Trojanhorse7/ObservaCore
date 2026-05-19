@@ -87,4 +87,4 @@ groups:
             The Pushgateway has not received any deployment metrics for 7 days.
             Either the pipeline is stalled or the metric push step is broken.
           dashboard_url: "http://localhost:3000/d/dora-metrics"
-          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/cfr-threshold-exceeded.md"
+          runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/no-pipeline-activity.md"

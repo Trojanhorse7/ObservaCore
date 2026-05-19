@@ -33,7 +33,7 @@ groups:
             More than 10% of production deployments in the past 7 days resulted in failure,
             rollback, or a hotfix. DORA classification has dropped from Elite/High.
             Investigate recent deployments immediately.
-          dashboard_url: "http://localhost:3000/d/dora-metrics"
+          dashboard_url: "http://35.182.228.47:3000/d/dora-metrics"
           runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/cfr-threshold-exceeded.md"
 
       - alert: CFRThresholdWarning
@@ -48,7 +48,7 @@ groups:
           description: |
             CFR has crossed 5%. If the trend continues it will breach the 10% SLO.
             Review recent deployments and pipeline quality.
-          dashboard_url: "http://localhost:3000/d/dora-metrics"
+          dashboard_url: "http://35.182.228.47:3000/d/dora-metrics"
           runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/cfr-threshold-exceeded.md"
 
       # MEAN TIME TO RESTORE
@@ -66,7 +66,7 @@ groups:
           description: |
             Average mean time to restore has exceeded the 60-minute SLO target.
             Review the incident response process — manual steps may be adding delay.
-          dashboard_url: "http://localhost:3000/d/dora-metrics"
+          dashboard_url: "http://35.182.228.47:3000/d/dora-metrics"
           runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/mttr-exceeded.md"
 
       # DEPLOYMENT FREQUENCY
@@ -86,5 +86,5 @@ groups:
           description: |
             The Pushgateway has not received any deployment metrics for 7 days.
             Either the pipeline is stalled or the metric push step is broken.
-          dashboard_url: "http://localhost:3000/d/dora-metrics"
+          dashboard_url: "http://35.182.228.47:3000/d/dora-metrics"
           runbook_url: "https://github.com/Trojanhorse7/ObservaCore/blob/main/runbooks/no-pipeline-activity.md"
